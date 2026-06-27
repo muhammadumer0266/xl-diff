@@ -52,9 +52,11 @@ for d in deltas:
     print(d.row_idx_old, d.row_idx_new, d.col_idx, d.status, d.old_value, d.new_value)
 ```
 
-Badge & CI
+Release & CI
 
-This repository includes GitHub Actions workflows to build manylinux/musllinux and wheels for Windows/macOS, along with an sdist job. The CI badge above links to the main workflow.
+This branch `issue/traceability-phase2` contains non-breaking fixes to improve thread-safety, panic handling, numeric tolerance comparison, and trailing-row trimming.
+
+The CI workflow builds platform wheels via maturin (manylinux/musllinux, Windows, macOS) and creates sdist artifacts.
 
 Contributing
 
