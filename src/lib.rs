@@ -1,4 +1,5 @@
 use pyo3::prelude::*;
+use pyo3::wrap_pyfunction;
 use calamine::{Reader, open_workbook_auto, Data};
 use std::path::Path;
 use std::collections::HashMap;
@@ -48,11 +49,11 @@ fn cell_to_string(cell: &Data) -> String {
 // 1. Load Excel Sheet Matrix
 fn load_sheet_matrix<P: AsRef<Path>>(file_path: P, sheet_name: &str) -> Result<Vec<Vec<Data>>, String> {
     let mut workbook = open_workbook_auto(file_path).map_err(|e| e.to_string())?;
-    
+
     // worksheet_range directly returns a Result, not an Option<Result>
     if let Ok(range) = workbook.worksheet_range(sheet_name) {
         // Explicitly annotating collect target eliminates E0282 inference errors
-        Ok(range.rows().map(|row| row.to_vec()).collect::<Vec<Vec<Data>>>())
+        Ok(range.rows().map(|row| row.to_vec()).collect::<Vec<Vec<Data>>>() )
     } else {
         Err(format!("Sheet '{}' not found or failed to parse.", sheet_name))
     }
@@ -191,6 +192,8 @@ fn diff_sheets(
     new_sheet: String,
     key_index: Option<usize>,
 ) -> PyResult<Vec<CellDelta>> {
+    // Note: we intentionally keep this function synchronous at the Rust level. The Python caller
+    // should call it inside a thread or use py.allow_threads when invoking from Python if needed.
     let old_grid = load_sheet_matrix(old_file, &old_sheet)
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
     let new_grid = load_sheet_matrix(new_file, &new_sheet)
@@ -202,7 +205,7 @@ fn diff_sheets(
     Ok(deltas)
 }
 
-// Put this function right above your #[pymodule] block
+// Utility: list sheet names
 #[pyfunction]
 fn get_sheet_names(file_path: String) -> PyResult<Vec<String>> {
     let workbook = open_workbook_auto(file_path)
@@ -210,11 +213,56 @@ fn get_sheet_names(file_path: String) -> PyResult<Vec<String>> {
     Ok(workbook.sheet_names())
 }
 
-// Update your existing module definition to include the new function
+// Python module definition
 #[pymodule]
-fn xl_diff(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn xl_diff(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(diff_sheets, m)?)?;
-    m.add_function(wrap_pyfunction!(get_sheet_names, m)?)?; // <-- ADD THIS LINE
+    m.add_function(wrap_pyfunction!(get_sheet_names, m)?)?;
     m.add_class::<CellDelta>()?;
     Ok(())
+}
+
+// --- Unit tests for core logic (can run in CI) ---
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use calamine::Data;
+
+    #[test]
+    fn test_align_matrices_with_key() {
+        let old = vec![
+            vec![Data::String("k1".into()), Data::String("a".into())],
+            vec![Data::String("k2".into()), Data::String("b".into())],
+        ];
+        let new = vec![
+            vec![Data::String("k2".into()), Data::String("b_modified".into())],
+            vec![Data::String("k1".into()), Data::String("a".into())],
+            vec![Data::String("k3".into()), Data::String("c".into())],
+        ];
+
+        let align = align_matrices(&old, &new, Some(0));
+        // Expect matches for k2 and k1 and an added k3, and no deletions
+        assert!(align.iter().any(|a| matches!(a, RowAlignment::Matched(1,0))));
+        assert!(align.iter().any(|a| matches!(a, RowAlignment::Matched(0,1))));
+        assert!(align.iter().any(|a| matches!(a, RowAlignment::Added(2))));
+    }
+
+    #[test]
+    fn test_compute_deltas_modified_added_deleted() {
+        let old = vec![
+            vec![Data::String("k1".into()), Data::String("a".into())],
+            vec![Data::String("k2".into()), Data::String("b".into())],
+        ];
+        let new = vec![
+            vec![Data::String("k2".into()), Data::String("b_modified".into())],
+            vec![Data::String("k3".into()), Data::String("c".into())],
+        ];
+
+        let align = align_matrices(&old, &new, Some(0));
+        let deltas = compute_deltas_parallel(&old, &new, &align);
+        // Expect at least one modified (b -> b_modified), one deleted (k1), and one added (k3)
+        assert!(deltas.iter().any(|d| d.status == "Modified"));
+        assert!(deltas.iter().any(|d| d.status == "Deleted"));
+        assert!(deltas.iter().any(|d| d.status == "Added"));
+    }
 }

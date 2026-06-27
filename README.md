@@ -1,64 +1,65 @@
 # xl-diff
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
-[![Language](https://img.shields.io/badge/Language-Rust%20%2F%20Python-orange.svg)]()
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)]()
+[![CI](https://github.com/muhammadumer0266/xl-diff/actions/workflows/CI.yml/badge.svg)](https://github.com/muhammadumer0266/xl-diff/actions/workflows/CI.yml)
+[![crates.io](https://img.shields.io/crates/v/xl_diff.svg)](https://crates.io/crates/xl_diff)
+[![PyPI](https://img.shields.io/pypi/v/xl-diff.svg)](https://pypi.org/project/xl-diff/)
+[![Language](https://img.shields.io/badge/Language-Rust%20%2F%20Python-orange.svg)](https://www.rust-lang.org/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-`xl-diff` is an ultra-fast, parallelized Excel sheet reconciliation engine built in Rust using **PyO3** and **Calamine**, natively compiled into a lightweight Python extension module. 
+xl-diff is a high-performance, memory-safe Excel comparison engine written in Rust and exposed as a Python extension via PyO3. It is designed to integrate into Django/Celery pipelines and produce cell-level semantic diffs between spreadsheet versions.
 
-By leveraging Rust's safe concurrency and zero-cost abstractions, `xl-diff` evaluates changes, additions, structural modifications, and deletions across massive workbooks in fractions of a second—bypassing the severe memory overhead and processing latency of standard heavy frameworks.
+Features
+- Fast, zero-copy reading of XLSX using `calamine`.
+- Parallel diff computation using `rayon`.
+- Row alignment using an optional key column or positional fallback.
+- Python bindings (PyO3) for seamless integration.
+- Cross-platform packaging with `maturin` and GitHub Actions.
 
----
-
-## 🏗️ Why `xl-diff`? Industry Use Cases
-
-In sectors where spreadsheets serve as the primary source of truth, tracking row-level revisions manually introduces risk, human error, and massive operational bottlenecks.
-
-### 📊 Financial & Accounting Systems
-* **Bank Reconciliation:** Match transactional records against general ledger entries instantaneously using custom unique reference keys.
-* **Audit Logs:** Identify exact modifications to cell data, ledger charts, balancing rows, and multi-currency exchange tables between monthly financial close versions.
-
-### 🚧 Construction & Estimating (QTO & Addendums)
-* **Addendum Traversal:** Automatically isolate structural changes, added rows of materials, or modified pricing rows when a new architect addendum or Quantity Take-Off (QTO) worksheet version drops.
-* **Scope Tracking:** Pinpoint altered trades, modified cost item quantities, and deleted scope metrics instantly without side-by-side human scanning.
-
-### 🔬 Supply Chain & Enterprise Resource Planning (ERP)
-* **Master Data Synchronization:** Compare massive inventory lists, bill of materials (BOM), and supplier pricing structures.
-
----
-
-## ⚡ Performance Matrix
-
-Unlike standard tools like `pandas` or `openpyxl` that read entire files into heavy Python objects, `xl-diff` reads files into memory at the native system layer and utilizes **Rayon** for multi-threaded parallel computation:
-
-| Metric / Library | `openpyxl` | `pandas` | `xl-diff` (Rust Backend) |
-|---|---|---|---|
-| **Speed (Large Sheets)** | 🐢 Slow (Single-threaded) | ⏳ Moderate | 🚀 Ultra-Fast (Parallelized) |
-| **Memory Footprint** | 🔴 Extremely High | 🟡 High | 🟢 Minimal (Zero-Copy overhead) |
-| **Row Alignment** | Manual Indexing Required | Index Merge Overhead | Native Key/Positional Aligners |
-
----
-
-## 🔧 Installation
-
-### Prerequisites
-* Python 3.10 or higher
-* [Rust toolchain](https://rustup.rs/) (if building or developing locally)
-
-### Local Development Setup
-To build the native extension directly into your local Python virtual environment, clone the repository and run `maturin`:
+Quick start (developer)
 
 ```bash
-# Clone the repository
-git clone [https://github.com/your-username/xl-diff.git](https://github.com/your-username/xl-diff.git)
+# Clone
+git clone https://github.com/muhammadumer0266/xl-diff.git
 cd xl-diff
 
-# Create and activate your virtual environment
+# Create virtualenv
 python -m venv .venv
-source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+source .venv/bin/activate
 
-# Install development dependencies
+# Install maturin and build the extension in-place
 pip install maturin
+maturin develop --release
+```
 
-# Compile and install the Rust extension in editable mode
-maturin develop
+Python usage
+
+```python
+import xl_diff
+
+# List sheets
+sheets = xl_diff.get_sheet_names("/path/to/file.xlsx")
+
+# Diff two sheets by key column 0
+deltas = xl_diff.diff_sheets(
+    "/path/to/old.xlsx",
+    "Sheet1",
+    "/path/to/new.xlsx",
+    "Sheet1",
+    0,
+)
+
+for d in deltas:
+    print(d.row_idx_old, d.row_idx_new, d.col_idx, d.status, d.old_value, d.new_value)
+```
+
+Badge & CI
+
+This repository includes GitHub Actions workflows to build manylinux/musllinux and wheels for Windows/macOS, along with an sdist job. The CI badge above links to the main workflow.
+
+Contributing
+
+Please open issues for bugs and feature requests. Pull requests should target the `main` branch; the `issue/traceability-phase2` branch contains traceability and test improvements.
+
+License
+
+MIT
