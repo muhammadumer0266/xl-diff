@@ -5,8 +5,6 @@ edition = "2021"
 
 [lib]
 name = "xl_diff"
-# "cdylib" instructs the compiler to produce a shared native binary object (.so/.dll/.dylib) 
-# that the Python runtime engine can import directly.
 crate-type = ["cdylib"]
 
 [dependencies]
@@ -14,6 +12,7 @@ calamine = "0.24"
 rayon = "1.10"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+num_cpus = "1.16"
 
 [dependencies.pyo3]
 version = "0.21"
