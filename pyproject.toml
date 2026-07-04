@@ -3,13 +3,24 @@ requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "xl_diff"
-requires-python = ">=3.10"
+name = "xl-diff"
 version = "0.1.0"
+description = "High-performance, memory-safe Excel diff engine (Rust) exposed as a Python extension via PyO3."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [ { name = "Muhammad Umer" } ]
+keywords = ["excel", "diff", "xlsx", "rust", "pyo3"]
 classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Rust",
-    "Programming Language :: Python :: Implementation :: CPython",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
 ]
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
+
+[tool.maturin.metadata]
+# Optional package metadata for PyPI publishing (filled when ready)
