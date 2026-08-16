@@ -1,3 +1,39 @@
+
+# xl-diff (sheetdiff)
+
+Minimal, efficient spreadsheet diff tool. Load CSV/XLSX and produce unified +/- row and cell diffs.
+
+Install
+
+```
+pip install xl-diff
+```
+
+Quick CLI
+
+```
+python -m sheetdiff.cli left.xlsx right.xlsx --key id
+```
+
+Python API
+
+```
+from sheetdiff.core import diff_sheets, format_unified
+
+changes = diff_sheets('left.csv','right.csv', key='id')
+print(format_unified(changes))
+```
+
+Functions
+
+- `diff_sheets(left, right, key=None, sheet_name=None)` — compare two files; if `key` provided, rows are matched by that column, otherwise by position. Returns list of tuples `(type, row_key_or_index, column, old, new)`.
+- `format_unified(changes)` — render a compact unified +/- text view.
+
+Integration notes
+
+- For web backends (Django/Celery), call `diff_sheets` inside a worker and serialize `changes` to JSON for paginated display.
+- For large files consider streaming alternatives or implementing the Rust core to scale beyond memory limits.
+
 # xl-diff
 
 [![CI](https://github.com/muhammadumer0266/xl-diff/actions/workflows/CI.yml/badge.svg)](https://github.com/muhammadumer0266/xl-diff/actions/workflows/CI.yml)
