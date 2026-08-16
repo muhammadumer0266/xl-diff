@@ -31,8 +31,9 @@ Functions
 
 Integration notes
 
-- For web backends (Django/Celery), call `diff_sheets` inside a worker and serialize `changes` to JSON for paginated display.
-- For large files consider streaming alternatives or implementing the Rust core to scale beyond memory limits.
+- For web backends (Django/Celery), call `diff_sheets` or `compare_workbooks` inside a worker and serialize `changes` to JSON for paginated display.
+- The package will prefer a Rust-backed binary extension `xl_diff` when available (faster, memory-efficient). If the Rust extension is not installed, the pure-Python fallback (`pandas` based) is used.
+- For very large files implement the Rust core (see `RUST_INTEGRATION.md`) and build wheels via `maturin` for best performance.
 
 # xl-diff
 

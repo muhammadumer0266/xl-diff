@@ -10,7 +10,8 @@ def main():
     p.add_argument("--all-sheets", action="store_true", help="compare all sheets in workbooks")
     args = p.parse_args()
     if args.all_sheets:
-        wb = diff_workbook(args.left, args.right, key=args.key)
+        from .core import compare_workbooks
+        wb = compare_workbooks(args.left, args.right, key=args.key)
         print(format_workbook(wb))
     else:
         changes = diff_sheets(args.left, args.right, key=args.key, sheet_name=args.sheet)

@@ -1,5 +1,15 @@
 from typing import List, Tuple, Optional, Any, Dict
 import pandas as pd
+import json
+
+# Optional Rust backend (xl_diff) if built and installed
+_RUST_AVAILABLE = False
+_rust = None
+try:
+    import xl_diff as _rust  # rust extension built via maturin/pyo3
+    _RUST_AVAILABLE = True
+except Exception:
+    _RUST_AVAILABLE = False
 
 def _load(path: str, sheet_name: Optional[str] = None) -> pd.DataFrame:
     if str(path).lower().endswith(('.xls', '.xlsx', '.xlsm')):
@@ -95,6 +105,42 @@ def diff_workbook(left: str, right: str, key: Optional[str] = None) -> Dict[str,
             Rpath = f".tmp_empty_{s}.csv"
         result[s] = diff_sheets(Lpath, Rpath, key=key, sheet_name=s)
     return result
+
+
+def compare_workbooks(left: str, right: str, key: Optional[str] = None) -> Dict[str, List[Change]]:
+    """High-level comparator that prefers a Rust backend when available.
+
+    Returns a mapping of sheet_name -> list of Change tuples.
+    """
+    if _RUST_AVAILABLE:
+        try:
+            # rust function returns JSON string report
+            raw = _rust.compare_workbooks_json(left, right, None, None)
+            report = json.loads(raw)
+            out: Dict[str, List[Change]] = {}
+            for sheet in report.get("sheets", []):
+                name = sheet.get("sheet_name")
+                deltas = []
+                for d in sheet.get("cell_deltas", []):
+                    status = d.get("status")
+                    row_old = d.get("row_idx_old")
+                    row_new = d.get("row_idx_new")
+                    col = d.get("col_idx")
+                    oldv = d.get("old_value")
+                    newv = d.get("new_value")
+                    if status == "Added":
+                        deltas.append(("added_row", row_new, None, None, None))
+                    elif status == "Deleted":
+                        deltas.append(("removed_row", row_old, None, None, None))
+                    else:
+                        deltas.append(("modified_cell", row_new if row_new is not None else row_old, col, oldv, newv))
+                out[name] = deltas
+            return out
+        except Exception:
+            # On any rust failure, fallback to Python implementation
+            pass
+
+    return diff_workbook(left, right, key=key)
 
 def format_unified(changes: List[Change]) -> str:
     out: List[str] = []

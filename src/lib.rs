@@ -1199,11 +1199,11 @@ fn compute_deltas_parallel(
                             .unwrap_or_default();
                         let old_style_profile = old_style_row
                             .and_then(|row| row.get(c))
-                            .copied()
+                            .cloned()
                             .flatten();
                         let new_style_profile = new_style_row
                             .and_then(|row| row.get(c))
-                            .copied()
+                            .cloned()
                             .flatten();
                         let old_style_id = old_style_profile.as_ref().map(|profile| profile.style_id);
                         let new_style_id = new_style_profile.as_ref().map(|profile| profile.style_id);
@@ -1273,10 +1273,11 @@ fn compute_deltas_parallel(
                                 .and_then(|row| row.get(c))
                                 .cloned()
                                 .unwrap_or_default();
-                            let old_style_id = old_style_row
+                            let old_style_profile = old_style_row
                                 .and_then(|row| row.get(c))
-                                .copied()
+                                .cloned()
                                 .flatten();
+                            let old_style_id = old_style_profile.as_ref().map(|p| p.style_id);
                             let mut change_kinds = vec!["Deleted".to_string()];
                             if !old_formula.is_empty() {
                                 change_kinds.push("Formula".to_string());
@@ -1317,10 +1318,11 @@ fn compute_deltas_parallel(
                                 .and_then(|row| row.get(c))
                                 .cloned()
                                 .unwrap_or_default();
-                            let new_style_id = new_style_row
+                            let new_style_profile = new_style_row
                                 .and_then(|row| row.get(c))
-                                .copied()
+                                .cloned()
                                 .flatten();
+                            let new_style_id = new_style_profile.as_ref().map(|p| p.style_id);
                             let mut change_kinds = vec!["Added".to_string()];
                             if !new_formula.is_empty() {
                                 change_kinds.push("Formula".to_string());
